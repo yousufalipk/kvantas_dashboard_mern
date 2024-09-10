@@ -30,11 +30,16 @@ const UpdateUserForm = () => {
       if (shouldUpdate) {
         try {
           const response = await updateUser(userId, values.fname, values.lname);
+          console.log("RESPONSE", response.success);
           if (response.success) {
-            toast.success("Info Updated Successfully!");
+            setTimeout(()=> {
+              toast.success("Info Updated Successfully!");
+            },500)
             navigate('/manage-users');
           } else {
-            toast.error("Updating info failed!");
+            setTimeout(()=> {
+              toast.error("Updating info failed!");
+            })
           }
         } catch (error) {
           console.error("Error", error);

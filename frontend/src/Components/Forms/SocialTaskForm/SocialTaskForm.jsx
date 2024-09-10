@@ -9,9 +9,12 @@ const SocialTaskForm = () => {
     const { createTask, updateTask } = useFirebase();
     const { tick, uid, priority, type, title, reward, link } = useParams();
 
-    const decodedLink = decodeURIComponent(link);
     const navigate = useNavigate();
 
+    // Decode the link
+    const decodedLink = link ? decodeURIComponent(link) : '';
+
+    // Set initial values based on params or defaults
     const initialValues = {
         priority: priority || '',
         type: type || '',
@@ -38,16 +41,15 @@ const SocialTaskForm = () => {
                     const response = await createTask(values);
                     if (response.success) {
                         navigate('/social-tasks');
-                        setTimeout(() => {
+                        setTimeout(()=> {
                             toast.success("Task Added Successfully!");
-                        }, 2000);
+                        },500)
                     } else {
-                        setTimeout(() => {
+                        setTimeout(()=> {
                             toast.error(response.message);
-                        }, 1000);
+                        },500)
                     }
-                }
-                else {
+                } else {
                     // Update task
                     const response = await updateTask({
                         uid,
@@ -59,13 +61,13 @@ const SocialTaskForm = () => {
                     });
                     if (response.success) {
                         navigate('/social-tasks');
-                        setTimeout(() => {
+                        setTimeout(()=> {
                             toast.success("Task Updated Successfully!");
-                        }, 2000);
+                        },500)
                     } else {
-                        setTimeout(() => {
+                        setTimeout(()=> {
                             toast.error(response.message);
-                        }, 1000);
+                        },500)
                     }
                 }
             } catch (error) {

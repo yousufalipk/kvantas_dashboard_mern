@@ -46,7 +46,7 @@ const AdminLayout = () => {
             {/* Manage User Routes  */}
             <Route path='/manage-users' element={<UserProtected ><ManageUsersPage /></UserProtected>}/>
             <Route path='/update-user/:userId/:fname/:lname/:email' element={<UserProtected ><UpdateUserForm /></UserProtected>}/> 
-            <Route path='/add-user' element={<UserProtected ><RegisterForm toggle={true} tick={true}/></UserProtected>}/> 
+            <Route path='/add-user' element={<UserProtected ><RegisterForm toggle={true} tick={false}/></UserProtected>}/> 
 
             {/* Manage Social Tasks */}
             <Route path='/social-tasks' element={<UserProtected ><SocialTaskPage /></UserProtected>}/>

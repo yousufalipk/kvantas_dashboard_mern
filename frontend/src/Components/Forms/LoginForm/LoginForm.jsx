@@ -26,11 +26,15 @@ const LoginForm = () => {
             try {
                 const response = await loginUser(values.email, values.password);
                 if(response.success){
-                    toast.success("Logged In Successfuly!")
+                    setTimeout(()=> (
+                        toast.success("Logged In Successfuly!")
+                    ), 1000)
                     navigate('/admin');
                 }
                 else{
-                    toast.error('Invalid Credentials!');
+                    setTimeout(()=> (
+                        toast.error('Invalid Credentials!')
+                    ), 1000)
                 }
             } catch (error) {
                 console.log(error);

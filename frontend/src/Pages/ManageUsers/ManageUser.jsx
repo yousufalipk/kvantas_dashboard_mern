@@ -9,7 +9,7 @@ import { RiDeleteBin5Line } from "react-icons/ri";
 
 const ManageUser = () => {
   const apiUrl = process.env.REACT_APP_API_URL;
-  const { users, fetchUsers, setLoading } = useFirebase();
+  const { users, fetchUsers, setLoading, deleteUser } = useFirebase();
   const navigate = useNavigate();
 
   const fetchData = async () => {
@@ -27,7 +27,7 @@ const ManageUser = () => {
   }, [])
 
 
-  const handleDeleteUser = async (uid, email) => {
+  const handleDeleteUser = async (id, email) => {
     const shouldDelete = window.confirm(`Are you sure you want remove ${email}?`);
     if (!shouldDelete) {
       return
@@ -35,8 +35,8 @@ const ManageUser = () => {
     else {
       try {
         setLoading(true);
-        const response = await axios.delete(`${apiUrl}/removeUser/${uid}`);
-        if (response.data.status === 'success') {
+        const response = await deleteUser(id);
+        if (response.success) {
           fetchData();
           toast.success(response.data.message);
         }
@@ -150,7 +150,7 @@ const ManageUser = () => {
                       <td className='px-6 py-4 border-b border-gray-200 text-sm text-center'>
                         <button
                           className="p-2 rounded-md bg-bluebtn text-gray-700 hover:bg-transparent hover:border-2 hover:border-bluebtn hover:text-bluebtn"
-                          onClick={() => handleUpdateUser(cls.id, cls.fname, cls.lname, cls.email)}
+                          onClick={() => handleUpdateUser(cls._id, cls.fname, cls.lname, cls.email)}
                         >
                           Update
                         </button>
@@ -158,7 +158,7 @@ const ManageUser = () => {
                       <td className='px-6 py-4 border-b border-gray-200 text-sm text-center '>
                         <button
                           className="p-2"
-                          onClick={() => handleDeleteUser(cls.id, cls.email)}
+                          onClick={() => handleDeleteUser(cls._id, cls.email)}
                         >
                           <RiDeleteBin5Line className="text-bluebtn w-5 h-5 hover:text-gray-700" />
                         </button>

@@ -24,7 +24,7 @@ const AuthLayout = () => {
         <div>
           <Routes>
             <Route path="*" element={<LoginPage />} />
-            <Route path="/register" element={<SignUpPage toggle={false} tick={false} />} />
+            <Route path="/register" element={<SignUpPage toggle={false} tick={true} />} />
           </Routes>
         </div>
       </div>

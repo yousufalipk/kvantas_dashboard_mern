@@ -163,7 +163,7 @@ const Annoucement = () => {
                       >
                         <button
                           className="p-2 hover:bg-bluebtn rounded-lg"
-                          onClick={() => handleStatusToggle(cls.id, cls.title, cls.status)}
+                          onClick={() => handleStatusToggle(cls._id, cls.title, cls.status)}
                         >
                           {cls.status ? (<p className='text-green-500 hover:text-black'>Active</p>) : (<p className='text-red-500 hover:text-black'>In Active</p>)}
                         </button>
@@ -179,7 +179,7 @@ const Annoucement = () => {
                       <td className='px-6 py-4 border-b border-gray-200 text-sm text-center'>
                         <button
                           className="p-2 rounded-md bg-bluebtn text-gray-700 hover:bg-transparent hover:border-2 hover:border-bluebtn hover:text-bluebtn"
-                          onClick={() => handleUpdateAnnoucment(cls.id, cls.title, cls.subtitle, cls.description, cls.reward, cls.imageName)}
+                          onClick={() => handleUpdateAnnoucment(cls._id, cls.title, cls.subtitle, cls.description, cls.reward, cls.imageName)}
                         >
                           Edit
                         </button>
@@ -187,7 +187,7 @@ const Annoucement = () => {
                       <td className='px-6 py-4 border-b border-gray-200 text-sm text-center '>
                         <button
                           className="p-2"
-                          onClick={() => handleDeleteAnnoucement(cls.id, cls.title)}
+                          onClick={() => handleDeleteAnnoucement(cls._id, cls.title)}
                         >
                           <RiDeleteBin5Line className="text-bluebtn w-5 h-5 hover:text-gray-700" />
                         </button>

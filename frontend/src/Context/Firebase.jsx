@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
+import axios from 'axios';
 import { initializeApp } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, doc, setDoc, getDoc, collection, getDocs, updateDoc, query, where, addDoc, deleteDoc, orderBy } from 'firebase/firestore';
@@ -29,6 +30,9 @@ const FirebaseContext = createContext(null);
 export const useFirebase = () => useContext(FirebaseContext);
 
 export const FirebaseProvider = (props) => {
+
+    const apiUrl = process.env.REACT_APP_API_URL;
+
     const [userId, setUserId] = useState(null);
 
     const [username, setUsername] = useState(null);
@@ -51,61 +55,58 @@ export const FirebaseProvider = (props) => {
 
     const [metrics, setMetrics] = useState(null);
 
-
-    // Function to refresh auth state on page load/refresh
     useEffect(() => {
-        setLoading(true);
-        calculateDashboardMetrics();
-        const unsubscribe = onAuthStateChanged(firebaseAuth, async (user) => {
-            if (user) {
-                const uid = user.uid;
-                setUserId(uid);
-                setAuth(true);
+        //calculateDashboardMetrics();
 
-                const userRef = doc(firestore, 'users', uid);
-                const docSnap = await getDoc(userRef);
-
-                if (docSnap.exists()) {
-                    const userData = docSnap.data();
-                    setUsername(`${userData.fname} ${userData.lname}`);
-                    setUserType(userData.userType);
+        const refreshAuth = async () => {
+            try {
+                setLoading(true);
+                const response = await axios.get(`${apiUrl}/refresh`, {
+                    withCredentials: true,
+                });
+                console.log(response);
+                if (response.data.status === 'success') {
+                    setUserId(response.data.user._id);
+                    setAuth(response.data.auth);
+                    setUsername(`${response.data.user.fname} ${response.data.user.lname}`);
+                    setUserType(response.data.user.userType);
                 }
-            } else {
-                // Clear the data if the user is not authenticated
-                setAuth(false);
-                setUsername(null);
-                setUserId(null);
-                setUserType(null);
+                else {
+                    setAuth(false);
+                    setUsername(null);
+                    setUserId(null);
+                    setUserType(null);
+                }
+            } catch (error) {
+                console.log("Internal Server Error/ Refresh");
+            } finally {
+                setLoading(false);
             }
-            setLoading(false);
-        });
+        }
 
-        return () => unsubscribe();
-    }, []);
+        refreshAuth();
+    }, [isAuth]);
 
-
-    const registerUser = async (fname, lname, email, password, tick) => {
+    const registerUser = async (fname, lname, email, password, confirmPassword, tick) => {
         setLoading(true);
         try {
-            const userCredential = await createUserWithEmailAndPassword(firebaseAuth, email, password);
-            const user = userCredential.user;
-            const uid = user.uid;
-
-            // Store additional user information in Firestore
-            await setDoc(doc(firestore, 'users', uid), {
+            const response = await axios.post(`${apiUrl}/register-user`, {
                 fname: fname,
                 lname: lname,
                 email: email,
-                userType: 'user'
-            });
-
-            if (tick) {
+                password: password,
+                confirmPassword: confirmPassword,
+                tick: tick
+            }, {
+                withCredentials: true
+            })
+            if (!tick) {
                 return { success: true };
             }
             else {
-                setUserId(uid);
-                setAuth(true);
-                setUsername(`${fname} ${lname}`);
+                setUserId(response.data.user._id);
+                setAuth(response.data.auth);
+                setUsername(`${response.data.user.fname} ${response.data.user.lname}`);
                 setUserType('user');
                 return { success: true };
             }
@@ -120,23 +121,22 @@ export const FirebaseProvider = (props) => {
     const loginUser = async (email, password) => {
         setLoading(true);
         try {
-            const userCredential = await signInWithEmailAndPassword(firebaseAuth, email, password);
-            const user = userCredential.user;
-            const uid = user.uid;
+            const response = await axios.post(`${apiUrl}/login-user`, {
+                email: email,
+                password: password
+            }, {
+                withCredentials: true
+            })
 
-            setUserId(uid);
-            setAuth(true);
-
-            const userRef = doc(firestore, 'users', uid);
-            const docSnap = await getDoc(userRef);
-
-            if (docSnap.exists()) {
-                const userData = docSnap.data();
-                setUsername(`${userData.fname} ${userData.lname}`);
-                setUserType(userData.userType);
+            if (response.data.status === 'success') {
+                setUserId(response.data.user._id);
+                setAuth(response.data.auth);
+                setUsername(`${response.data.user.fname} ${response.data.user.lname}`);
+                setUserType(response.data.user.userType);
                 return { success: true };
-            } else {
-                return { success: false, message: "No such document!" };
+            }
+            else {
+                return { success: false };
             }
         } catch (error) {
             console.error("Error logging in:", error);
@@ -149,27 +149,35 @@ export const FirebaseProvider = (props) => {
     const logoutUser = async () => {
         setLoading(true);
         try {
-            await signOut(firebaseAuth);
-            setAuth(false);
-            setUsername(null);
-            setUserId(null);
-            setUserType(null);
-            return { success: true };
+            const response = await axios.post(`${apiUrl}/logout-user`, {}, { withCredentials: true });
+
+            if (response.data.status === 'success') {
+                setAuth(false);
+                setUserId(null);
+                setUsername(null);
+                setUserType(null);
+                return { success: true };
+            } else {
+                return { success: false };
+            }
         } catch (error) {
-            console.error("Error during logout:", error);
+            console.error("Error logging out:", error);
             return { success: false, message: "Error logging out!" };
         } finally {
             setLoading(false);
         }
     };
 
+
     const fetchUsers = async () => {
         try {
-            const usersQuery = query(collection(firestore, 'users'), where('userType', '!=', 'admin'));
-            const querySnapshot = await getDocs(usersQuery);
-            const nonAdminUsers = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            setUsers(nonAdminUsers);
-            return { success: true };
+            const response = await axios.get(`${apiUrl}/fetch-users`);
+            if (response.data.status === 'success') {
+                setUsers(response.data.users);
+            }
+            else {
+                return { success: false };
+            }
         } catch (error) {
             console.error("Error fetching non-admin users:", error);
             return { success: false, message: "Error fetching users!" };
@@ -178,14 +186,15 @@ export const FirebaseProvider = (props) => {
 
     const fetchTelegramUsers = async () => {
         try {
-            const telegramUsersQuery = query(collection(firestore, 'telegramUsers'));
-            const telegramUsersSnapshot = await getDocs(telegramUsersQuery);
-            const telegramUsers = telegramUsersSnapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }));
-            setTelegramUsers(telegramUsers);
-            return { success: true, telegramUsers: telegramUsers };
+            const response = await axios.get(`${apiUrl}/fetch-telegram-users`);
+            if (response.data.status === 'success') {
+                setTelegramUsers(response.data.telegramUsers);
+                console.log(response.data.telegramUsers);
+                return { success: true, telegramUsers: response.data.telegramUsers };
+            }
+            else {
+                return { success: false };
+            }
         } catch (error) {
             console.error("Error fetching telegram users:", error);
             return { success: false, message: "Error fetching telegram users!" };
@@ -196,11 +205,35 @@ export const FirebaseProvider = (props) => {
     const updateUser = async (id, firstName, lastName) => {
         setLoading(true);
         try {
-            await updateDoc(doc(firestore, 'users', id), {
+            const response = await axios.put(`${apiUrl}/update-user`, {
                 fname: firstName,
-                lname: lastName
-            });
-            return { success: true };
+                lname: lastName,
+                userId: id
+            })
+            if (response.data.status === 'success') {
+                return { success: true };
+            }
+            else {
+                return { success: false };
+            }
+        } catch (error) {
+            return { success: false };
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const deleteUser = async (id) => {
+        setLoading(true);
+        try {
+            const response = await axios.delete(`${apiUrl}/remove-user`, {
+                data: {
+                    userId: id
+                }
+            })
+            if (response.data.status === 'success') {
+                return { success: true };
+            }
         } catch (error) {
             return { success: false };
         } finally {
@@ -211,27 +244,20 @@ export const FirebaseProvider = (props) => {
     const createTask = async (values) => {
         try {
             setLoading(true);
-            // Reference to the tasks collection
-            const tasksCollection = collection(firestore, 'socialTask');
-
-            // Check if the priority is already taken
-            const snapshot = await getDocs(query(tasksCollection, where("priority", "==", values.priority)));
-            if (!snapshot.empty) {
-                console.log("Priority taken");
-                return { success: false, message: "Priority is already taken!" };
-            }
-
-            // Add a new document to the tasks collection
-            await addDoc(tasksCollection, {
-                image: values.type,
+            const response = await axios.post(`${apiUrl}/create-social-task`, {
+                img: values.type,
                 priority: values.priority,
                 title: values.title,
                 link: values.link,
-                reward: values.reward,
-                createdAt: new Date()
-            });
+                reward: values.reward
+            })
 
-            return { success: true };
+            if (response.data.status === 'success') {
+                return { success: true };
+            }
+            else {
+                return { success: false, message: response.data.message };
+            }
         } catch (error) {
             return { success: false, message: "Internal Server Error!" };
         } finally {
@@ -241,52 +267,35 @@ export const FirebaseProvider = (props) => {
 
     const fetchTasks = async () => {
         try {
-            const tasksRef = collection(firestore, 'socialTask');
-            // Create a query that orders tasks by priority in ascending order
-            const q = query(tasksRef, orderBy("priority", "asc"));
-            const snapshot = await getDocs(q);
-
-            if (snapshot.empty) {
-                return { success: false, message: 'No tasks found!' };
+            const response = await axios.get(`${apiUrl}/fetch-social-task`);
+            if (response.data.status === 'success') {
+                setTasks(response.data.tasks);
+                return { success: true };
+            } else {
+                return { success: false, message: response.data.message };
             }
-
-            const tasksData = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data(),
-            }));
-
-            setTasks(tasksData); // Store the sorted tasks
-            return { success: true };
         } catch (error) {
             console.error("Error fetching tasks:", error);
             return { success: false, message: "Error fetching tasks!" };
         }
     };
 
-
     const updateTask = async ({ uid, type, priority, title, link, reward }) => {
         try {
             setLoading(true);
-
-            // Check if the priority is already taken by another task
-            const tasksCollection = collection(firestore, 'socialTask');
-            const snapshot = await getDocs(query(tasksCollection, where("priority", "==", priority)));
-            if (!snapshot.empty && snapshot.docs[0].id !== uid) {
-                console.log("Priority taken");
-                return { success: false, message: "Priority is already taken!" };
-            }
-
-            // Update the task if the priority is available
-            await updateDoc(doc(firestore, 'socialTask', uid), {
-                image: type,
-                priority,
-                title,
-                link,
-                reward,
-                createdAt: new Date()
+            const response = await axios.post(`${apiUrl}/update-social-task/${uid}`, {
+                img: type,
+                priority: priority,
+                title: title,
+                link: link,
+                reward: reward
             });
-
-            return { success: true };
+            if (response.data.status === 'success') {
+                return { success: true };
+            }
+            else {
+                return { success: false, message: response.data.message };
+            }
         } catch (error) {
             console.log("Error updating task", error);
             return { success: false };
@@ -298,40 +307,37 @@ export const FirebaseProvider = (props) => {
     const deleteTask = async (uid) => {
         try {
             setLoading(true);
-            await deleteDoc(doc(firestore, 'socialTask', uid));
-            return { success: true };
+            const response = await axios.delete(`${apiUrl}/delete-task/${uid}`);
+            if (response.data.status === "success") {
+                console.log("Response", response);
+                return { success: true };
+            }
+            else {
+                return { success: false, message: response.data.message };
+            }
         } catch (error) {
-            return { success: false };
+            return { success: false, message: "Internal Server Error" };
         } finally {
             setLoading(false);
         }
     }
 
-
     const createDailyTask = async (values) => {
         try {
             setLoading(true);
-            // Reference to the tasks collection
-            const tasksCollection = collection(firestore, 'dailyTask');
-
-            // Check if the priority is already taken
-            const snapshot = await getDocs(query(tasksCollection, where("priority", "==", values.priority)));
-            if (!snapshot.empty) {
-                console.log("Priority taken");
-                return { success: false, message: "Priority is already taken!" };
-            }
-
-            // Add a new document to the tasks collection
-            await addDoc(tasksCollection, {
-                image: values.type,
+            const response = await axios.post(`${apiUrl}/create-daily-task`, {
+                img: values.type,
                 priority: values.priority,
                 title: values.title,
                 link: values.link,
-                reward: values.reward,
-                createdAt: new Date()
-            });
-
-            return { success: true };
+                reward: values.reward
+            })
+            if (response.data.status === 'success') {
+                return { success: true };
+            }
+            else {
+                return { success: false };
+            }
         } catch (error) {
             return { success: false, message: "Internal Server Error!" };
         } finally {
@@ -341,23 +347,13 @@ export const FirebaseProvider = (props) => {
 
     const fetchDailyTask = async () => {
         try {
-            console.log("Fetching data!")
-            const tasksRef = collection(firestore, 'dailyTask');
-            // Create a query that orders tasks by priority in ascending order
-            const q = query(tasksRef, orderBy("priority", "asc"));
-            const snapshot = await getDocs(q);
-
-            if (snapshot.empty) {
-                console.log("Empty!")
-                return { success: false, message: 'No tasks found!' };
+            const response = await axios.get(`${apiUrl}/fetch-daily-task`);
+            if (response.data.status === 'success') {
+                setDailyTasks(response.data.tasks);
+                return { success: true };
+            } else {
+                return { success: false, message: response.data.message };
             }
-
-            const tasksData = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data(),
-            }));
-            setDailyTasks(tasksData); // Store the sorted tasks
-            return { success: true };
         } catch (error) {
             console.error("Error fetching tasks:", error);
             return { success: false, message: "Error fetching tasks!" };
@@ -369,25 +365,20 @@ export const FirebaseProvider = (props) => {
         try {
             setLoading(true);
 
-            // Check if the priority is already taken by another task
-            const tasksCollection = collection(firestore, 'dailyTask');
-            const snapshot = await getDocs(query(tasksCollection, where("priority", "==", priority)));
-            if (!snapshot.empty && snapshot.docs[0].id !== uid) {
-                console.log("Priority taken");
-                return { success: false, message: "Priority is already taken!" };
-            }
-
-            // Update the task if the priority is available
-            await updateDoc(doc(firestore, 'dailyTask', uid), {
-                image: type,
-                priority,
-                title,
-                link,
-                reward,
-                createdAt: new Date()
+            setLoading(true);
+            const response = await axios.post(`${apiUrl}/update-daily-task/${uid}`, {
+                img: type,
+                priority: priority,
+                title: title,
+                link: link,
+                reward: reward
             });
-
-            return { success: true };
+            if (response.data.status === 'success') {
+                return { success: true };
+            }
+            else {
+                return { success: false, message: response.data.message };
+            }
         } catch (error) {
             console.log("Error updating task", error);
             return { success: false };
@@ -399,8 +390,13 @@ export const FirebaseProvider = (props) => {
     const deleteDailyTask = async (uid) => {
         try {
             setLoading(true);
-            await deleteDoc(doc(firestore, 'dailyTask', uid));
-            return { success: true };
+            const response = await axios.delete(`${apiUrl}/delete-daily/${uid}`);
+            if (response.data.status === "success") {
+                return { success: true };
+            }
+            else {
+                return { success: false, message: response.data.message };
+            }
         } catch (error) {
             return { success: false };
         } finally {
@@ -408,56 +404,16 @@ export const FirebaseProvider = (props) => {
         }
     }
 
-    const createAnnoucement = async (values) => {
-        try {
-            setLoading(true);
-
-            let downloadURL = '';
-
-            if (values.image) {
-                const storageRef = ref(storage, `announcements/${Date.now()}_${values.image.name}`);
-
-                const snapshot = await uploadBytes(storageRef, values.image);
-
-                downloadURL = await getDownloadURL(snapshot.ref);
-            }
-
-            // Add the announcement to Firestore
-            const annoucementCollection = collection(firestore, 'announcements');
-
-            await addDoc(annoucementCollection, {
-                title: values.title,
-                subtitle: values.subtitle,
-                description: values.description,
-                reward: values.reward,
-                status: false,
-                image: downloadURL || null,
-                imageName: values.image.name || null
-            });
-
-            return { success: true };
-        } catch (error) {
-            console.error("Error creating announcement:", error);
-            return { success: false, error: error.message };
-        } finally {
-            setLoading(false);
-        }
-    };
-
     const fetchAnnoucement = async () => {
         try {
-            const tasksRef = collection(firestore, 'announcements');
-            const snapshot = await getDocs(tasksRef);
-            if (snapshot.empty) {
-                return { success: false, message: 'No annoucements found!' };
+            const response = await axios.get(`${apiUrl}/fetch-annoucements`);
+            if(response.data.status === 'success'){
+                setAnnoucement(response.data.annoucements);
+                return { success: true };
             }
-
-            const tasksData = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data(),
-            }));
-            setAnnoucement(tasksData);
-            return { success: true };
+            else{
+                return { success: false };
+            }
         } catch (error) {
             console.error("Error fetching annoucement:", error);
             return { success: false, message: "Error fetching annoucements!" };
@@ -516,28 +472,18 @@ export const FirebaseProvider = (props) => {
 
     const toggleAnnoucementStatus = async (uid, status) => {
         try {
-            console.log("Status", status, "Uid", uid);
             setLoading(true);
-    
-            // Fetch the existing announcement document
-            const announcementDocRef = doc(firestore, 'announcements', uid);
-    
-            // Check if there's another active announcement
-            const activeAnnouncementQuery = query(collection(firestore, 'announcements'), where('status', '==', true));
-            const activeAnnouncementSnapshot = await getDocs(activeAnnouncementQuery);
-    
-            if (activeAnnouncementSnapshot.size > 0 && !status) {
-                // If there is another active announcement, return a message
-                console.log("Another Annoucement is already active!");
-                return { success: false, message: "Another announcement is already active!" };
+
+            const response = await axios.post(`${apiUrl}/toggle-annoucement`, {
+                id: uid
+            })
+
+            if(response.data.status === 'success'){
+                return { success: true };
             }
-    
-            // Update the announcement document in Firestore
-            await updateDoc(announcementDocRef, {
-                status: !status
-            });
-    
-            return { success: true };
+            else{
+                return { success: false, message: response.data.message }; 
+            }
         } catch (error) {
             console.error("Error updating announcement:", error);
             return { success: false, error: error.message };
@@ -545,27 +491,18 @@ export const FirebaseProvider = (props) => {
             setLoading(false);
         }
     };
-    
+
 
     const deleteAnnoucement = async (uid) => {
         try {
             setLoading(true);
-
-            const announcementDoc = await getDoc(doc(firestore, 'announcements', uid));
-
-            if (announcementDoc.exists()) {
-                const announcementData = announcementDoc.data();
-                const imagePath = announcementData.image;
-
-                await deleteDoc(doc(firestore, 'announcements', uid));
-
-                if (imagePath) {
-                    const imageRef = ref(storage, imagePath);
-                    await deleteObject(imageRef);
-                }
+            const response = await axios.delete(`${apiUrl}/remove-annoucement/${uid}`);
+            if(response.data.status === 'success'){
+                return { success: true };
             }
-
-            return { success: true };
+            else{
+                return { success: false };
+            }
         } catch (error) {
             console.error("Error deleting announcement:", error);
             return { success: false, error: error.message };
@@ -573,6 +510,8 @@ export const FirebaseProvider = (props) => {
             setLoading(false);
         }
     };
+
+    /*
 
     const calculateDashboardMetrics = async () => {
         try {
@@ -630,10 +569,10 @@ export const FirebaseProvider = (props) => {
             console.error("Error calculating dashboard metrics:", error);
             return { success: false, message: "Error calculating metrics" };
         }
-    };
+    };  */
 
 
-    
+
 
 
     return (
@@ -642,17 +581,17 @@ export const FirebaseProvider = (props) => {
             loginUser,
             logoutUser,
             fetchUsers,
+            deleteUser,
             fetchTelegramUsers,
             updateUser,
             createTask,
             fetchTasks,
             updateTask,
             deleteTask,
-            createAnnoucement,
-            fetchAnnoucement,
             updateAnnoucement,
             deleteAnnoucement,
             toggleAnnoucementStatus,
+            fetchAnnoucement,
             setTelegramUsers,
             telegramUsers,
             setLoading,

@@ -36,15 +36,16 @@ const DailyTaskForm = () => {
                 if (tick === 'true') {
                     // Create task
                     const response = await createDailyTask(values);
+                    console.log("fdfdf",response);
                     if (response.success) {
                         navigate('/daily-tasks');
                         setTimeout(() => {
                             toast.success("Task Added Successfully!");
-                        }, 2000);
+                        }, 500);
                     } else {
                         setTimeout(() => {
                             toast.error(response.message);
-                        }, 1000);
+                        }, 500);
                     }
                 }
                 else {
@@ -62,11 +63,11 @@ const DailyTaskForm = () => {
                         navigate('/daily-tasks');
                         setTimeout(() => {
                             toast.success("Task Updated Successfully!");
-                        }, 2000);
+                        }, 500);
                     } else {
                         setTimeout(() => {
                             toast.error(response.message);
-                        }, 1000);
+                        }, 500);
                     }
                 }
             } catch (error) {

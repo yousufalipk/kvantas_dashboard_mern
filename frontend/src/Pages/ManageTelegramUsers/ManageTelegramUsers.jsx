@@ -26,7 +26,7 @@ const ManageTelegramUsers = () => {
   const handleDownloadData = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${apiUrl}/downloadTelegramUsersData`, {
+      const response = await axios.get(`${apiUrl}/downloadTeleUsersData`, {
         responseType: 'blob',
       });
 
@@ -56,14 +56,15 @@ const ManageTelegramUsers = () => {
   }, []);
 
   const formatDate = (timestamp) => {
-    if (timestamp && timestamp.toDate) {
-      const date = timestamp.toDate();
+    if (timestamp) {
+      const date = new Date(timestamp);
       const formattedDate = format(date, 'MM/dd/yyyy');
       const formattedTime = format(date, 'hh:mm a');
       return `${formattedDate}\n${formattedTime}`;
     }
     return 'Invalid Date';
   };
+  
 
   const handleFilterChange = (e) => {
     setFilter(e.target.value);

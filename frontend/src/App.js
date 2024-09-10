@@ -1,5 +1,5 @@
 import './App.css';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -14,7 +14,7 @@ import AdminLayout from './Layouts/AdminLayout/AdminLayout';
 import ProtectedRoute from './Components/Protected/Protected';
 
 function App() {
-  const { isAuth, loading } = useFirebase();
+  const { isAuth, loading, refreshAuth } = useFirebase();
 
   if (loading) {
     return <Loader />;

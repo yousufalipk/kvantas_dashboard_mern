@@ -13,9 +13,18 @@ const SideBar = () => {
   const handleLogOut = async () => {
     // LogOut Logic 
     try {
-      await logoutUser();
-      toast.success("Logged Out Succesfully!");
-      navigate('/')
+      const response = await logoutUser();
+      if(response.success){
+        setTimeout(()=> {
+          toast.success("Logged Out Succesfully!")
+        },1000)
+        navigate('/')
+      }
+      else{
+        setTimeout(()=> {
+          toast.error("Error Logging Out!")
+        },1000)
+      }
     } catch (error) {
       console.log(error);
       toast.error('Logging Out Failed!');

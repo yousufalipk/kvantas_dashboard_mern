@@ -4,11 +4,14 @@ import * as Yup from 'yup';
 import { toast } from 'react-toastify';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useFirebase } from '../../../Context/Firebase';
+import axios from 'axios';
 
 const AnnoucementForm = () => {
-    const { createAnnoucement, updateAnnoucement } = useFirebase();
+    const { updateAnnoucement } = useFirebase();
     const { tick, uid, title, subtitle, description, reward, imageName } = useParams();
     const navigate = useNavigate();
+
+    const apiUrl = process.env.REACT_APP_API_URL;
 
     const initialValues = {
         title: title || '',
@@ -31,34 +34,58 @@ const AnnoucementForm = () => {
 
     const formik = useFormik({
         initialValues,
-        validationSchema,
+        validationSchema: validationSchema,
         onSubmit: async (values, { resetForm }) => {
-            console.log("Tick", tick);
             try {
                 if (tick === 'true') {
-                    console.log("creating...");
+                    console.log("Creating...");
+    
                     // Create Announcement
-                    const response = await createAnnoucement(values);
-                    if (response.success) {
+                    const formData = new FormData();
+                    formData.append('title', values.title);
+                    formData.append('subtitle', values.subtitle);
+                    formData.append('description', values.description);
+                    formData.append('reward', values.reward);
+                    formData.append('status', false); // Assuming 'status' is required
+                    if (values.image) {
+                        formData.append('image', values.image);
+                    }
+                    formData.append('imageName', values.image.name);
+    
+                    const response = await axios.post(`${apiUrl}/create-annoucement`, formData, {
+                        headers: {
+                            'Content-Type': 'multipart/form-data'
+                        }
+                    });
+    
+                    if (response.data.message === 'Announcement created successfully!') {
                         navigate('/annoucements');
-                        setTimeout(() => {
-                            toast.success("Annoucement Created Successfuly!");
-                        }, 2000);
+                        toast.success("Announcement Created Successfully!");
                     } else {
                         toast.error("Error Creating Announcement!");
                     }
                 } else {
-                    console.log("updating...");
+                    console.log("Updating...");
+    
                     // Update Announcement
-                    const response = await updateAnnoucement({
-                        uid,
+                    const updateData = {
                         title: values.title,
                         subtitle: values.subtitle,
                         description: values.description,
                         reward: values.reward,
-                        image: values.image
+                    };
+                    
+                    // Include image as a string if it exists
+                    if (values.image) {
+                        updateData.image = values.image.name; 
+                    }                    
+    
+                    const response = await axios.put(`${apiUrl}/update-annoucement`,{
+                        id: uid,
+                        updateData
                     });
-                    if (response.success) {
+                    console.log("Frontend",response.data);
+                    if (response.data.message === 'Announcement updated successfully!') {
                         navigate('/annoucements');
                         toast.success("Announcement Updated Successfully!");
                     } else {
@@ -73,6 +100,8 @@ const AnnoucementForm = () => {
             }
         }
     });
+    
+
 
     const handleBack = () => {
         navigate('/annoucements');

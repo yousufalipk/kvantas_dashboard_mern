@@ -36,32 +36,32 @@ const SignUpForm = (props) => {
     onSubmit: async (values, { resetForm }) => {
       try {
         setLoading(true);
+        let response;
         if (props.tick) {
-          const response = await axios.post(`${apiUrl}/registerUser`, {
-            fname: values.fname,
-            lname: values.lname,
-            email: values.email,
-            password: values.password,
-            confirmPassword: values.confirmPassword
-          });
-          if (response.data.status === 'success') {
-            toast.success("User Added Successfuly!");
-            navigate('/manage-users');
-          }
-          else {
-            toast.error("Registration Failed");
-          }
+          response = await registerUser(values.fname, values.lname, values.email, values.password, values.confirmPassword, true);
         }
         else {
-          const response = await registerUser(values.fname, values.lname, values.email, values.password, false);
+          response = await registerUser(values.fname, values.lname, values.email, values.password, values.confirmPassword, false);
+        }
+
           if (response.success) {
-            toast.success("Account Created Successfully!");
-            navigate('/admin');
+            if(props.tick){
+              setTimeout(()=> {
+                toast.success("Account Created Successfully!");
+              }, 1000)
+              navigate('/admin');
+            }else{
+              setTimeout(()=> {
+                toast.success("User Added Succesfuly!");
+              }, 1000)
+              navigate('/manage-users');
+            }
           }
           else {
-            toast.error("Registration Failed");
+            setTimeout(()=> {
+              toast.error("Registration Failed");
+            }, 1000)
           }
-        }
       } catch (error) {
         console.log(error);
         toast.error('Registration Failed!');

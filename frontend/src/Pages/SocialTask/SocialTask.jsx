@@ -53,12 +53,16 @@ const SocialTask = () => {
       }
       else {
         try {
-          const response = deleteTask(uid);
-          if (response.data.success) {
-            toast.success("Task Deleted Succesfuly!")
+          const response = await deleteTask(uid);
+          if (response.success) {
+            setTimeout(()=> {
+              toast.success("Task Deleted Succesfuly!")
+            },500)
           }
           else {
-            toast.error("Error Deleting Task!")
+            setTimeout(()=> {
+              toast.error("Error deleting Task!")
+            },500)
           }
         } catch (error) {
           toast.error("Internal Server Error!")
@@ -131,7 +135,7 @@ const SocialTask = () => {
                     <td className='px-6 py-4 border-b border-gray-200 text-sm text-center'>
                       <button
                         className="p-2 rounded-md bg-bluebtn text-gray-700 hover:bg-transparent hover:border-2 hover:border-bluebtn hover:text-bluebtn"
-                        onClick={() => handleUpdateTask(cls.id, cls.image, cls.priority, cls.title, cls.link, cls.reward)}
+                        onClick={() => handleUpdateTask(cls._id, cls.image, cls.priority, cls.title, cls.link, cls.reward)}
                       >
                         Edit
                       </button>
@@ -139,7 +143,7 @@ const SocialTask = () => {
                     <td className='px-6 py-4 border-b border-gray-200 text-sm text-center'>
                       <button
                         className="p-2"
-                        onClick={() => handleDeleteTask(cls.id, cls.title)}
+                        onClick={() => handleDeleteTask(cls._id, cls.title)}
                       >
                         <RiDeleteBin5Line className="text-bluebtn w-5 h-5 hover:text-gray-700" />
                       </button>
