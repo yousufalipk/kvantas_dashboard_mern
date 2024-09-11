@@ -11,7 +11,7 @@ const app = express();
 
 // CORS configuration
 app.use(cors({
-    origin: FRONTEND_ORIGIN,
+    origin: FRONTEND_ORIGIN, // List your allowed origins here
     credentials: true
 }));
 
@@ -20,6 +20,7 @@ app.use(cookieParser());
 
 // Test route
 app.get('/', (req, res) => {
+    console.log("Front", FRONTEND_ORIGIN);
     res.send('Server Runs Correctly');
 });
 
