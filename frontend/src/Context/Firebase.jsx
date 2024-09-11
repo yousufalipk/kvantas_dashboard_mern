@@ -397,56 +397,6 @@ export const FirebaseProvider = (props) => {
         }
     };
 
-    const updateAnnoucement = async ({ uid, title, subtitle, description, reward, image }) => {
-        try {
-            setLoading(true);
-
-            // Fetch the existing announcement document
-            const announcementDocRef = doc(firestore, 'announcements', uid);
-            const announcementSnapshot = await getDoc(announcementDocRef);
-
-            if (!announcementSnapshot.exists()) {
-                throw new Error('Announcement not found');
-            }
-
-            const announcementData = announcementSnapshot.data();
-            let downloadURL = announcementData.image || '';
-            let imageName = announcementData.imageName || '';
-
-            // Delete the existing image if a new image is provided
-            if (image && announcementData.image) {
-                const imageRef = ref(storage, announcementData.image);
-                await deleteObject(imageRef); // Delete the existing image
-            }
-
-            // Upload the new image if provided
-            if (image) {
-                const storageRef = ref(storage, `announcements/${Date.now()}_${image.name}`);
-                const snapshot = await uploadBytes(storageRef, image);
-                downloadURL = await getDownloadURL(snapshot.ref);
-                imageName = image.name;
-            }
-
-            // Update the announcement document in Firestore
-            await updateDoc(announcementDocRef, {
-                title: title,
-                subtitle: subtitle,
-                description: description,
-                reward: reward,
-                status: false,
-                image: downloadURL || null,
-                imageName: imageName || null,
-            });
-
-            return { success: true };
-        } catch (error) {
-            console.error("Error updating announcement:", error);
-            return { success: false, error: error.message };
-        } finally {
-            setLoading(false);
-        }
-    };
-
     const toggleAnnoucementStatus = async (uid, status) => {
         try {
             setLoading(true);
@@ -565,7 +515,6 @@ export const FirebaseProvider = (props) => {
             fetchTasks,
             updateTask,
             deleteTask,
-            updateAnnoucement,
             deleteAnnoucement,
             toggleAnnoucementStatus,
             fetchAnnoucement,
