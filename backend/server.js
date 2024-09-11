@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const { PORT } = require('./config/env');
+const { PORT, FRONTEND_ORIGIN } = require('./config/env');
 const ConnectToDb = require('./config/db');
 const userRoutes = require('./routes/userRoutes');
 const cookieParser = require('cookie-parser');
@@ -11,7 +11,8 @@ app.use(express.json());
 app.use(cookieParser());
 
 app.use(cors({
-    credentials: true, 
+    origin: FRONTEND_ORIGIN,
+    credentials: true
 }));
 
 // Db Connection
