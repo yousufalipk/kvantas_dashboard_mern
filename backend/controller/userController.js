@@ -1,5 +1,4 @@
 const UserModel = require('../Models/userSchema');
-
 const SocialModel = require('../Models/socialSchema');
 const DailyModel = require('../Models/dailySchema');
 const TelegramModel = require('../Models/telegramSchema');
