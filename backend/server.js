@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const { PORT, FRONTEND_URL } = require('./config/env');
+const { PORT } = require('./config/env');
 const ConnectToDb = require('./config/db');
 const userRoutes = require('./routes/userRoutes');
 const cookieParser = require('cookie-parser');
