@@ -11,7 +11,7 @@ const app = express();
 
 // CORS configuration
 app.use(cors({
-    origin: FRONTEND_ORIGIN, // List your allowed origins here
+    origin: FRONTEND_ORIGIN, 
     credentials: true
 }));
 
@@ -24,7 +24,7 @@ app.get('/', (req, res) => {
     res.send('Server Runs Correctly');
 });
 
-app.use('/', user);
+app.use('/api', user);
 
 
 module.exports = app;
