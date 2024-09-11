@@ -1,9 +1,9 @@
-const UserModel = require('../Models/userSchema');
-const SocialModel = require('../Models/socialSchema');
-const DailyModel = require('../Models/dailySchema');
-const TelegramModel = require('../Models/telegramSchema');
-const AnnouncementModel = require('../Models/annoucementSchema'); 
-const RefreshTokenModel = require("../Models/tokenSchema");
+const UserModel = require('../models/userSchema');
+const SocialModel = require('../models/socialSchema');
+const DailyModel = require('../models/dailySchema');
+const TelegramModel = require('../models/telegramSchema');
+const AnnouncementModel = require('../models/annoucementSchema'); 
+const RefreshTokenModel = require("../models/tokenSchema");
 
 const bcrypt = require('bcrypt');
 const XLSX = require('xlsx');
